@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .container {
+            margin: 4px;
+            padding: 4px;
+            border: 1px solid;
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            font-size: smaller;
+            width: 400px;
+        }
+
+        .audio-meter {
+            background: #8f8;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="myIdDisp"></div>
+    <div>
+        <div class="container">
+            <div>ローカルオーディオ：</div>
+            <audio id="localAudioPlayer" autoplay></audio>
+            <div id="localAudioMeterContainer" class="audio-meter-container">
+                <div id="localAudioMeter" class="audio-meter"></div>
+            </div>
+        </div>
+        <div class="container">
+            <div>リモートオーディオ：</div>
+            <audio id="remoteAudioPlayer" autoplay></audio>
+            <div id="remoteAudioMeterContainer" class="audio-meter-container">
+                <div id="remoteAudioMeter" class="audio-meter"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const ac = new AudioContext();
+        const analysers = {
+            local: null,
+            remote: null
+        };
+        const audioBuffers = {
+            local: null,
+            remote: null
+        };
+        const audioMeters = {
+            local: localAudioMeter,
+            remote: remoteAudioMeter
+        };
+
+        const peer = new Peer({
+            key: 'bea1e09a-a7f9-41fb-8700-e6d18ba907bd',
+        });
+        peer.on('open', id => {
+            console.log('peer on open');
+            myIdDisp.textContent = id;
+            audioMeterRender();
+            peer.listAllPeers(async peers => {
+                const remoteId = peers.filter(peerId => peerId !== id)[0];
+                if (remoteId) {
+                    console.log(`remoteId: ${remoteId}`);
+                    const stream = await getStream();
+                    console.log(`call to ${remoteId}`);
+                    const call = peer.call(remoteId, stream);
+                    setupCallHandler(call);
+                }
+            });
+            peer.on('call', async call => {
+                console.log('peer on call');
+                const stream = await getStream();
+                setupCallHandler(call);
+                console.log('call answer');
+                call.answer(stream);
+            });
+        });
+
+        async function getStream() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                createAnalyser(stream, 'local');
+                remoteAudioPlayer.srcObject = stream;
+                return stream;
+            } catch (err) {
+                console.log('gUM() err', err);
+            }
+        }
+
+        function setupCallHandler(call) {
+            call.on('stream', stream => {
+                console.log('call on stream');
+                createAnalyser(stream, 'remote');
+                remoteAudioPlayer.srcObject = stream;
+            });
+        }
+
+        function createAnalyser(stream, side) {
+            const audioSource = ac.createMediaStreamSource(stream);
+            const analyser = analysers[side] = ac.createAnalyser();
+            analyser.fftSize = 32;
+            analyser.smoothingTimeConstant = 0.3;
+            audioBuffers[side] = new Uint8Array(analyser.fftSize);
+            audioSource.connect(analyser);
+        }
+
+        function audioMeterRender() {
+            requestAnimationFrame(audioMeterRender);
+            ['local', 'remote'].forEach(side => {
+                if (!analysers[side]) return;
+                analysers[side].getByteFrequencyData(audioBuffers[side]);
+                let volume = (audioBuffers[side].reduce((a, b) => a + b) / audioBuffers[side].length) / 255;
+                audioMeters[side].style.width = (volume * 300) + 'px';
+            });
+        }
+    </script>
+</body>
+
+</html>
