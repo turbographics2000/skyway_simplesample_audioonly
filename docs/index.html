@@ -8,6 +8,13 @@
     <script src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script>
     <title>Document</title>
     <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
         .container {
             margin: 4px;
             padding: 4px;
@@ -57,6 +64,11 @@
             local: localAudioMeter,
             remote: remoteAudioMeter
         };
+
+        document.body.onclick = evt => {
+            localAudioPlayer.play();
+            remoteAudioPlayer.play();
+        }
 
         const peer = new Peer({
             key: 'bea1e09a-a7f9-41fb-8700-e6d18ba907bd',
