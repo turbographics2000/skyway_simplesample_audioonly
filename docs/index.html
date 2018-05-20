@@ -87,8 +87,8 @@
         async function getStream() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                localAudioPlayer.srcObject = stream;
                 createAnalyser(stream, 'local');
-                remoteAudioPlayer.srcObject = stream;
                 return stream;
             } catch (err) {
                 console.log('gUM() err', err);
