@@ -130,7 +130,7 @@
                 if (!analysers[side]) return;
                 analysers[side].getByteFrequencyData(audioBuffers[side]);
                 let volume = (audioBuffers[side].reduce((a, b) => a + b) / audioBuffers[side].length) / 255;
-                audioMeters[side].style.width = (volume * 300) + 'px';
+                audioMeters[side].style.width = (volume * 600) + 'px';
             });
         }
     </script>
